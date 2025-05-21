@@ -1,0 +1,21 @@
+image: gcc:latest
+
+stages:
+  - build
+  - test
+
+before_script:
+  - apt-get update && apt-get install -y cmake ninja-build
+
+build:
+  stage: build
+  script:
+    - cmake -Bbuild -H. -G Ninja
+    - cmake --build build
+
+test:
+  stage: test
+  script:
+    - ./build/server &
+    - sleep 2
+    - curl http://localhost:8080 | grep "Hello from C++"
