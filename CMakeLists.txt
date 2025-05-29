@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
-project(httplib_json_demo)
+project(cassie)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(include)
+file(GLOB SOURCES "src/*.cpp")
+add_executable(server ${SOURCES})
 
-add_executable(server src/main.cpp)
+#link winsock 
+if (WIN32)
+    target_link_libraries(server ws2_32)
+endif()
