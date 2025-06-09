@@ -6,6 +6,7 @@ stages:
 
 before_script:
   - apt-get update && apt-get install -y cmake ninja-build
+  - mkdir -p build
 
 build:
   stage: build
