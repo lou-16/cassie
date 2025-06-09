@@ -2,8 +2,10 @@
 #include <json.hpp>
 #include <iostream>
 #include "gitserviceimpl.h"
-
+#include <ctime>
+#include "utils.h"
 using json = nlohmann::json;
+
 
 int main() {
     httplib::Server svr;
@@ -19,9 +21,9 @@ int main() {
     svr.Post("/deploy", [&globalDeployData](const httplib::Request& req, httplib::Response& res) {
         try {
             json data = json::parse(req.body);
-
+            const auto tp_utc{std::chrono::system_clock::now().time_since_epoch()};
             std::string repoURL = data["repo"];
-            std::string targetDir = data["dir"];
+            std::string targetDir = appendEpochTo("../deployments/kernel");
             
             GitServiceImpl s;
             if(!s.handleRequest(repoURL, targetDir)){
