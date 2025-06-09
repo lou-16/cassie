@@ -14,8 +14,8 @@ int main() {
 
     svr.Get("/", [](const httplib::Request& req , httplib::Response& res) {
         std::cout << req.body;
-        json j = { {"message", "Hello from C++!"} };
-        res.set_content(j.dump(), "application/json");
+        //json j = { {"message", "Hello from C++!"} };
+        res.set_content("Hello from C++","text/plain");
     });
 
     svr.Post("/deploy", [&globalDeployData](const httplib::Request& req, httplib::Response& res) {
@@ -47,7 +47,7 @@ int main() {
         }
     });
 
-    std::cout << "Server running at http://localhost:8080\n";
+    std::cout << "Server is up and running";
     svr.listen("0.0.0.0", 8080);
     return 0;
 }
