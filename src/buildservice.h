@@ -2,7 +2,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-
+#include <queue>
+#include <mutex>
+#include <shared_mutex>
 // This is the blueprint for the build service. it shall
 /*
     -> Have a BuildService object that is to be default initialised
@@ -14,36 +16,37 @@
        > 3 ; error in cassie-build.json file (incorrect syntax)
        *** extend as per requirements ***
 */
-const enum BUILD_TYPE  {
+enum BUILD_TYPE  {
     CPP,
     NODEJS,
 };
 
-constexpr enum JOB_STATUS{
-    READY = 0,
+enum JOB_STATUS{
+    START = 0,
     WORKING = 1,
-    SUSPENDED = 2,
     COMPLETED = 3,
-    FAILED = 4
+    FAILED = 4,
+    NOT_FOUND = 5
 };
 
 
-struct Job {
+typedef struct Job {
     const std::string __id;
     const std::string location;
     const BUILD_TYPE __build_type; 
-};
+}Job;
 
 class BuildService {
     protected: 
-        std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
-    private:    
-        virtual ~BuildService() = default;
-        virtual int setJobStatus() = 0;
+        static std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
+        static std::vector<Job> JobQueue; 
+        static std::shared_mutex sharedMutex;
+        virtual ~BuildService() = default;    
+        virtual int setJobStatus() ;
     public:
         virtual JOB_STATUS getJobStatus();
-        virtual int addJobToQueue();
-        virtual int executeJob() = 0;
+        virtual JOB_STATUS addJobToQueue();
+        virtual int executeJob() ;
         
         
 };

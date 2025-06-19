@@ -4,13 +4,15 @@
 #include "gitserviceimpl.h"
 #include <ctime>
 #include "utils.h"
+#include "buildserviceimpl.h"
 using json = nlohmann::json;
 
+BuildServiceImpl build_service;
 
 int main() {
     httplib::Server svr;
-
-    std::unordered_map<std::string, json> globalDeployData;
+    
+    
 
     svr.Get("/", [](const httplib::Request& req , httplib::Response& res) {
         std::cout << req.body;
@@ -18,7 +20,7 @@ int main() {
         res.set_content("Hello from C++","text/plain");
     });
 
-    svr.Post("/deploy", [&globalDeployData](const httplib::Request& req, httplib::Response& res) {
+    svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
         try {
             json data = json::parse(req.body);
             const auto tp_utc{std::chrono::system_clock::now().time_since_epoch()};
@@ -31,14 +33,31 @@ int main() {
                 res.set_content("deploy failed", "text/plain");
                 return;    
             }
-            globalDeployData[req.remote_addr] = data;
-            res.status = 200;
-            res.set_content("deploy started", "text/plain");
+            std::string job_id = createUniqueId();
+            std::thread([repoURL, targetDir, job_id](){
+                try  {
+                    JOB_STATUS __status = build_service.addJobToQueue(job_id, targetDir, BUILD_TYPE::CPP);
+                    build_service.executeJob(job_id);
+                } catch (const std::exception& e){
+                    std::cerr<< "[THREAD ERROR]" << e.what() << std::endl;
+                }
+            }).detach();
 
-        }   catch (int i){
+            json responseData;
+            responseData["message"] = "your deployment request has been pushed for processing";
+            responseData["id"] = job_id;
+            res.status = 200;
+            res.set_content(responseData.dump(), "application/json");
+
+        }   catch (const std::exception& i){
             res.status = 400;
-            res.set_content("invalid json", "text/plain");
+            res.set_content(std::string("invalid json") + i.what() , "text/plain");
         }
+        
+    });
+
+    svr.Get("/status", [](const httplib::Request& req, httplib::Response& res){
+
     });
 
     svr.set_logger([](const httplib::Request &req, const httplib::Response &res){

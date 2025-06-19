@@ -1,10 +1,14 @@
+#pragma once
+
 #include <chrono>
 #include <string>
 #include <iostream>
+#include <sstream>
+#include <random>
+#include <iomanip>
 
-std::string appendEpochTo(const std::string& base){
-    using namespace std::chrono;
-    auto now = system_clock::now();
-    auto epoch = duration_cast<seconds>(now.time_since_epoch()).count();
-    return base + "_" + std::to_string(epoch);
-}
+std::string appendEpochTo(const std::string& base);
+uint64_t cheapHash(uint64_t timestamp, uint64_t salt);
+std::string toHex(uint64_t value);
+
+std::string createUniqueId();
