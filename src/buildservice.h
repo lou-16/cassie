@@ -5,6 +5,8 @@
 #include <queue>
 #include <mutex>
 #include <shared_mutex>
+#include <condition_variable>
+#include <thread>
 // This is the blueprint for the build service. it shall
 /*
     -> Have a BuildService object that is to be default initialised
@@ -43,6 +45,10 @@ class BuildService {
         static std::shared_mutex sharedMutex;
         virtual ~BuildService() = default;    
         virtual int setJobStatus() ;
+        static std::condition_variable jobAvailable;
+        static bool stop;
+        static std::vector<std::thread> workers;
+        static const int MAX_THREADS = 10;
     public:
         virtual JOB_STATUS getJobStatus();
         virtual JOB_STATUS addJobToQueue();
