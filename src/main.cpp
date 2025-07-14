@@ -4,10 +4,10 @@
 #include "gitserviceimpl.h"
 #include <ctime>
 #include "utils.h"
-#include "buildserviceimpl.h"
+#include "schedulerserviceimpl.h"
 using json = nlohmann::json;
 
-BuildServiceImpl build_service;
+SchedulerServiceImpl Scheduler;
 
 int main() {
     httplib::Server svr;
@@ -20,39 +20,37 @@ int main() {
         res.set_content("Hello from C++","text/plain");
     });
 
-    svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
-        try {
-            json data = json::parse(req.body);
-            const auto tp_utc{std::chrono::system_clock::now().time_since_epoch()};
-            std::string repoURL = data["repo"];
-            std::string targetDir = appendEpochTo("../deployments/kernel");
-            
-            GitServiceImpl s;
-            if(!s.handleRequest(repoURL, targetDir)){
-                res.status = 501;
-                res.set_content("deploy failed", "text/plain");
-                return;    
-            }
-            std::string job_id = createUniqueId();
-            std::thread([repoURL, targetDir, job_id](){
-                try  {
-                    JOB_STATUS __status = build_service.addJobToQueue(job_id, targetDir, BUILD_TYPE::CPP);
-                    build_service.executeJob(job_id);
-                } catch (const std::exception& e){
-                    std::cerr<< "[THREAD ERROR]" << e.what() << std::endl;
-                }
-            }).detach();
+    
+svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
+    try {
+        json data = json::parse(req.body);
+        std::string repoURL = data["repo"];
 
-            json responseData;
-            responseData["message"] = "your deployment request has been pushed for processing";
-            responseData["id"] = job_id;
+        try {
+            std::string outputFolder = "../deployments/" + extractRepoName(repoURL);
+            std::string job_id = Scheduler.enqueueDeployment(repoURL, outputFolder);
+
+            json responseData = {
+                {"message", "your deployment request has been pushed for processing"},
+                {"id", job_id}
+            };
             res.status = 200;
             res.set_content(responseData.dump(), "application/json");
 
-        }   catch (const std::exception& i){
-            res.status = 400;
-            res.set_content(std::string("invalid json") + i.what() , "text/plain");
+        } catch (const std::exception& ex) {
+            res.status = 501;
+            res.set_content(std::string("deploy failed: ") + ex.what(), "text/plain");
         }
+
+    } catch (const std::exception& e) {
+        res.status = 400;
+        res.set_content(std::string("invalid json: ") + e.what(), "text/plain");
+    }
+});
+
+
+
+    svr.Post("/start", [](const httplib::Request& req, httplib::Response& res) {
         
     });
 

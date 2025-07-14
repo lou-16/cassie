@@ -32,3 +32,21 @@ std::string createUniqueId(){
     std::string id = toHex(timestamp)+toHex(salt).substr(0, 4)+ toHex(hashed).substr(0, 0);
     return id;
 }
+bool endsWith(const std::string& str, const std::string& suffix) {
+    return str.size() >= suffix.size() &&
+           str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+
+std::string extractRepoName(const std::string& url) {
+    size_t lastSlash = url.find_last_of("/:");
+    if (lastSlash == std::string::npos) return "";
+
+    std::string repoPart = url.substr(lastSlash + 1);
+
+    if (endsWith(repoPart, ".git")) {
+        repoPart = repoPart.substr(0, repoPart.size() - 4);
+    }
+
+    return repoPart;
+}

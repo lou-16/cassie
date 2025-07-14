@@ -7,9 +7,10 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <thread>
-// This is the blueprint for the build service. it shall
+#include <functional>
+// This is the blueprint for the Scheduler service. it shall
 /*
-    -> Have a BuildService object that is to be default initialised
+    -> Have a SchedulerService object that is to be default initialised
     -> Then anytime a particular project is to be built, read a cassie-build.json file
        and then build the project accordingly
     -> return values as per success:
@@ -38,21 +39,28 @@ typedef struct Job {
     const BUILD_TYPE __build_type; 
 }Job;
 
-class BuildService {
+class SchedulerService {
     protected: 
         static std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
         static std::vector<Job> JobQueue; 
         static std::shared_mutex sharedMutex;
-        virtual ~BuildService() = default;    
+        virtual ~SchedulerService() = default;    
         virtual int setJobStatus() ;
         static std::condition_variable jobAvailable;
         static bool stop;
+        static std::queue<std::function<void()>> taskQueue;
+        static std::mutex queueMutex;
         static std::vector<std::thread> workers;
         static const int MAX_THREADS = 10;
+
+        virtual void workerThread(); //
+        //ADD task to the thread pool. NOT THE TASK QUEUE
+        virtual void enqueueTask(std::function<void()>); //
+
     public:
+        virtual void initWorkerPool(); // 
         virtual JOB_STATUS getJobStatus();
         virtual JOB_STATUS addJobToQueue();
         virtual int executeJob() ;
-        
-        
+        virtual void Shutdown(); //
 };

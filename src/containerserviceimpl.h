@@ -2,8 +2,12 @@
 
 class ContainerServiceImpl : public ContainerService {
 public:
-    bool startContainer(const std::string& imageName, const std::string& containerName) override {
-        std::string cmd = "docker run -d --name " + containerName + " " + imageName;
+    bool startContainer(const std::string& imageName, const std::string& containerName, const std::string& pathToDir) override {
+        std::string mountedPath = "/cassie/data";
+        
+        std::string cmd = "docker run -d --name " + containerName + 
+                                    +" -v "+ pathToDir + ":" + mountedPath + 
+                                    " " + imageName;
         return std::system(cmd.c_str()) == 0;
     }
 
