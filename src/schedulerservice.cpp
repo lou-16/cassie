@@ -3,12 +3,7 @@
 std::unordered_map<std::string, JOB_STATUS> SchedulerService::ActiveJobs;
 std::vector<Job> SchedulerService::JobQueue;
 std::shared_mutex SchedulerService::sharedMutex;
-std::unordered_map<std::string, JOB_STATUS> SchedulerService::ActiveJobs;
-std::vector<Job> SchedulerService::JobQueue;
-std::shared_mutex SchedulerService::sharedMutex;
-
-std::queue<std::function<void()>> SchedulerService::taskQueue;
-std::mutex SchedulerService::queueMutex;
+std::mutex SchedulerService::uniqueLock;
 std::condition_variable SchedulerService::jobAvailable;
 bool SchedulerService::stop = false;
 std::vector<std::thread> SchedulerService::workers;
@@ -21,10 +16,6 @@ int SchedulerService::setJobStatus()
 }
 
 void SchedulerService::workerThread()
-{
-}
-
-void SchedulerService::enqueueTask()
 {
 }
 

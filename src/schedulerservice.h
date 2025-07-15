@@ -19,7 +19,8 @@
        > 3 ; error in cassie-build.json file (incorrect syntax)
        *** extend as per requirements ***
 */
-enum BUILD_TYPE  {
+enum BUILD_TYPE {
+    NOT_SPECIFIED,
     CPP,
     NODEJS,
 };
@@ -34,29 +35,39 @@ enum JOB_STATUS{
 
 
 typedef struct Job {
-    const std::string __id;
-    const std::string location;
-    const BUILD_TYPE __build_type; 
+    std::string __id;
+    std::string location;
+    BUILD_TYPE __build_type;
+    Job() = default;
+    Job(const Job&) = default;
+    Job(Job&&) noexcept = default;
+    Job& operator=(const Job&) = default;
+    Job& operator=(Job&&) noexcept = default;
 }Job;
 
 class SchedulerService {
     protected: 
+
+        //internal Buffers : 
         static std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
         static std::vector<Job> JobQueue; 
+        static std::vector<std::thread> workers;
+
+        //Locks and Mutexes
         static std::shared_mutex sharedMutex;
-        virtual ~SchedulerService() = default;    
-        virtual int setJobStatus() ;
+        static std::mutex uniqueLock;
+
+        //Condition variables
         static std::condition_variable jobAvailable;
         static bool stop;
-        static std::queue<std::function<void()>> taskQueue;
-        static std::mutex queueMutex;
-        static std::vector<std::thread> workers;
+        virtual int setJobStatus() ;
+        
+        //Constants
         static const int MAX_THREADS = 10;
 
+        // Worker Threads get called with this function. continuously checks for any jobs from jobAvailable variable
         virtual void workerThread(); //
-        //ADD task to the thread pool. NOT THE TASK QUEUE
-        virtual void enqueueTask(std::function<void()>); //
-
+        virtual ~SchedulerService() = default;  
     public:
         virtual void initWorkerPool(); // 
         virtual JOB_STATUS getJobStatus();

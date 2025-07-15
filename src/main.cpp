@@ -12,7 +12,7 @@ SchedulerServiceImpl Scheduler;
 int main() {
     httplib::Server svr;
     
-    
+    Scheduler.initWorkerPool();
 
     svr.Get("/", [](const httplib::Request& req , httplib::Response& res) {
         std::cout << req.body;
@@ -48,15 +48,6 @@ svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
     }
 });
 
-
-
-    svr.Post("/start", [](const httplib::Request& req, httplib::Response& res) {
-        
-    });
-
-    svr.Get("/status", [](const httplib::Request& req, httplib::Response& res){
-
-    });
 
     svr.set_logger([](const httplib::Request &req, const httplib::Response &res){
         std::cout << "[LOG]"<< req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << std::endl;

@@ -48,5 +48,5 @@ std::string extractRepoName(const std::string& url) {
         repoPart = repoPart.substr(0, repoPart.size() - 4);
     }
 
-    return repoPart;
+    return appendEpochTo(repoPart);
 }

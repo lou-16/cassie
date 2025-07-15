@@ -10,5 +10,7 @@ class SchedulerServiceImpl : public SchedulerService {
         int setJobStatus(const std::string id, const JOB_STATUS status);
         std::string enqueueDeployment (const std::string& repoURL, const std::string& prefix);
         void initWorkerPool() override;
-        void enqueueTask(std::function<void()>) override;
+        void workerThread() override;
+        void nodejs_internal_build(const Job&);
+        void removeJob(const Job&);
 };
