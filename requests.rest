@@ -1,0 +1,7 @@
+###
+POST http://localhost:8080/deploy
+
+{
+    "dir" : "./deployments",
+    "repo": "https://github.com/lou-16/test-engine.git"
+}

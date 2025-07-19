@@ -1,0 +1,72 @@
+# CMake build folders
+/build/
+/cmake-build-*/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# Ninja files
+build.ninja
+rules.ninja
+
+# Visual Studio files (if ever generated)
+*.sln
+*.vcxproj*
+*.user
+*.filters
+
+# Code::Blocks
+*.cbp
+*.depend
+*.layout
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+
+# MacOS hidden files
+.DS_Store
+
+# Windows hidden files
+Thumbs.db
+
+# Compiled binaries
+*.exe
+*.out
+*.obj
+*.o
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Core dumps
+core.*
+*.stackdump
+
+# Logs
+*.log
+
+# Backup files
+*~
+*.bak
+*.swp
+
+# clangd/VSCode tooling
+.cache/
+.vscode/
+.clangd/
+compile_commands.json
+
+# CTest output
+Testing/
+test_detail.xml
+LastTest.log
+
+deployments
