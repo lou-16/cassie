@@ -1,3 +1,4 @@
+#pragma once
 #include "schedulerservice.h"
 
 class SchedulerServiceImpl : public SchedulerService {

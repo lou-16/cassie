@@ -38,12 +38,16 @@ typedef struct Job {
     std::string __id;
     std::string location;
     BUILD_TYPE __build_type;
-    Job() = default;
     Job(const Job&) = default;
     Job(Job&&) noexcept = default;
     Job& operator=(const Job&) = default;
     Job& operator=(Job&&) noexcept = default;
+    Job() = default;
 }Job;
+
+// for interal purposes, no such job needs to be created
+inline Job emptyJob;
+
 
 class SchedulerService {
     protected: 
