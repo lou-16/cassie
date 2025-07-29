@@ -96,7 +96,7 @@ FetchResponse fetch(
         std::cerr << "[Fetch] No response from server" << std::endl;
         return FetchResponse(httplib::BadRequest_400, "");
     }
-    httplib::StatusCode status = httplib::StatusCode::OK_200;
+    httplib::StatusCode status = static_cast<httplib::StatusCode>(res->value().status);
     httplib::Response response = res->value();
-    return FetchResponse(httplib::OK_200, response.body) ;
+    return FetchResponse(status, response.body) ;
 }
