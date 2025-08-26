@@ -12,27 +12,28 @@
 
 using json = nlohmann::json;
 
-
-
 class ContainerService {
     private:
         httplib::Client client;
     public:
-        ContainerService() : client("unix://var/run/docker.sock") { };
+        ContainerService() : client("unix://var/run/docker.sock") {
+            client.set_connection_timeout(5); //seconds
+            client.set_read_timeout(5);
+            client.set_write_timeout(5);
+        };
         static std::vector<std::shared_ptr<ContainerInfo>> containers; 
         static std::unordered_map<std::string,std::shared_ptr<ContainerInfo>> containersMap;
         static std::mutex containersMutex;
 
-        std::shared_ptr<ContainerInfo> findContainer(const std::string& id);
-        bool startContainer(const std::string& name);
-        bool stopContainer(const std::string& name);
-        std::string getContainerStatus(const std::string& id);
-        ~ContainerService() = default;
-        std::shared_ptr<ContainerInfo> loadConfigJson(const Job& J);
-        bool createContainer(const Job& J);
+        std::shared_ptr<ContainerInfo> findContainer(const std::string& id); //
+        bool startContainer(const std::string& name); //
+        bool stopContainer(const std::string& name); //
+        std::string getContainerStatus(const std::string& name); //
+        ~ContainerService() = default; // 
+        std::shared_ptr<ContainerInfo> loadConfigJson(const Job& J); //
+        bool createContainer(const Job& J); //
 
 };
-
 
 std::shared_ptr<ContainerInfo> ContainerService::loadConfigJson(const Job& job_ref) {
     try {
@@ -74,10 +75,8 @@ std::shared_ptr<ContainerInfo> ContainerService::findContainer(const std::string
         return nullptr;
     }
     std::unique_lock lock(containersMutex);
-    auto it = std::find_if(containers.begin(), containers.end(), [&](const auto& container) {
-        return container->id == id;
-    });
-    return it != containers.end()? *it : nullptr;
+    auto it = containersMap.find(id);
+    return (it != containersMap.end()) ? it->second : nullptr;
 }
 
 bool ContainerService::startContainer(const std::string& name) {
@@ -103,7 +102,8 @@ bool ContainerService::createContainer(const Job& j) {
     std::string endpoint = "/1.41/containers/create";
 
     json body = {
-        {"Image" , Container.get()->Image}
+        //implement proper image support, for now, just get hello-world working
+        {"Image" , "hello-world"}
     };
 
 
@@ -113,11 +113,13 @@ bool ContainerService::createContainer(const Job& j) {
 
     FetchResponse res = fetch(client, endpoint, "POST", headers, body.dump());
     
-    json responseToBeParsed = json(res.body);
+    json responseToBeParsed = json::parse(res.body, nullptr, false);
     if(res.status == 201 && responseToBeParsed.contains("id")){
         Container.get()->id = responseToBeParsed["id"];
     } else if (responseToBeParsed.contains("message")){
         Container.get()->id = "";
+        std::unique_lock lock(containersMutex);
+
         return false;
     }
     else{
@@ -126,3 +128,46 @@ bool ContainerService::createContainer(const Job& j) {
     return true;
     
 }
+
+bool ContainerService::stopContainer(const std::string& name) {
+    std::shared_lock lock(containersMutex);
+    std::shared_ptr<ContainerInfo> container = findContainer(name);
+    if (!container) {
+        return false;
+    }
+    if(container.get()->id == ""){
+        return false;
+    }
+    std::string endpoint = "/1.41/containers/" + container.get()->id + "/kill";
+
+    FetchResponse res = fetch(client, endpoint, "POST");
+
+    return res.status == 204;
+}
+
+std::string ContainerService::getContainerStatus(const std::string& name){
+    std::shared_lock lock(containersMutex);
+    std::shared_ptr<ContainerInfo> container = findContainer(name);
+    if(!container) {
+        return "CONTAINER_NOT_FOUND";
+    }
+    if(container.get()->id == ""){
+        return "CONTAINER_NOT_INIT";
+    }
+    std::string endpoint = "/1.41/containers/" + container.get()->id + "/json";
+
+    FetchResponse res = fetch(client, endpoint, "GET");
+
+    if(res.status == 200) {
+        try {
+            std::string state = json(res.body)["State"]["Status"];
+            return state;
+        } catch (const std::exception& e){
+            return "PARSE_ERROR";
+        }
+    }
+    return "FETCH_FAILED";
+
+}
+
+std::string ContainerService::startContainer(const std::string& )

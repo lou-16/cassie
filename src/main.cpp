@@ -5,10 +5,12 @@
 #include <ctime>
 #include "utils.h"
 #include "schedulerserviceimpl.h"
+#include "containerservice.h"
+
 using json = nlohmann::json;
 
 SchedulerServiceImpl Scheduler;
-
+ContainerService ContainerServiceObject;
 int main() {
     httplib::Server svr;
     
@@ -34,7 +36,7 @@ svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
                 {"message", "your deployment request has been pushed for processing"},
                 {"id", job_id}
             };
-            res.status = 200;
+            res.status = 200;   
             res.set_content(responseData.dump(), "application/json");
 
         } catch (const std::exception& ex) {
@@ -48,6 +50,13 @@ svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
     }
 });
 
+svr.Post("/containers/:id", [&](const httplib::Request& req, httplib::Response& res){
+    try {
+        json data = json::parse(req.body);
+        auto user_id = req.path_params.at("id");
+        ContainerServiceObject.
+    }
+});
 
     svr.set_logger([](const httplib::Request &req, const httplib::Response &res){
         std::cout << "[LOG]"<< req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << std::endl;
