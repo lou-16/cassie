@@ -1,13 +1,14 @@
 #include "schedulerserviceimpl.h"
-#include "utils.h"
+#include "../utils/utils.h"
 #include <thread>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 #include "json.hpp"
+#include <memory>
 using json = nlohmann::json;
 
-#include "gitserviceimpl.h"
+#include "../git/gitserviceimpl.h"
 // Set the job status in the active jobs map
 int SchedulerServiceImpl::setJobStatus(const std::string id, const JOB_STATUS status) {
     std::unique_lock lock(sharedMutex);
@@ -16,8 +17,8 @@ int SchedulerServiceImpl::setJobStatus(const std::string id, const JOB_STATUS st
     }
     auto it = ActiveJobs.find(id);
     if (it != ActiveJobs.end()) {
-        it->second = status;
-        return static_cast<int>(it->second);
+        it->second->__status = status;
+        return static_cast<int>(it->second->__status);
     }
     return -1;
 }
@@ -29,7 +30,7 @@ JOB_STATUS SchedulerServiceImpl::getJobStatus(const std::string id) {
     if (it == ActiveJobs.end()) {
         return JOB_STATUS::NOT_FOUND;
     }
-    return it->second;
+    return it->second->__status;
 }
 
 // Add a new job to the queue
@@ -38,8 +39,8 @@ JOB_STATUS SchedulerServiceImpl::addJobToQueue(const std::string id, const std::
     Job job = {id, location, typeOfBuild};
     {
         std::unique_lock lock(uniqueLock);
-        ActiveJobs[id] = JOB_STATUS::START;
         JobQueue.push_back(std::move(job));
+        ActiveJobs[id] = (JobQueue.end() - 1)->;
     }
     jobAvailable.notify_one();
 
@@ -172,6 +173,9 @@ void SchedulerServiceImpl::workerThread() {
         std::unique_lock lock(uniqueLock);
 
         jobAvailable.wait(lock, [] {
+            auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [](const std::shared_ptr<Job>& j){
+                return j.get()->
+            })
             return !SchedulerServiceImpl::JobQueue.empty();
         });
 
@@ -185,3 +189,14 @@ void SchedulerServiceImpl::workerThread() {
     }
 }
 
+Job& SchedulerServiceImpl::getJobRef(const std::string id){
+    std::unique_lock lock(uniqueLock);
+    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [id](const Job& j) {
+        return j.__id == id;
+    });
+    if(it != JobQueue.end()){
+        return *it;
+    } else {
+        return emptyJob;
+    }
+}

@@ -38,6 +38,7 @@ typedef struct Job {
     std::string __id;
     std::string location;
     BUILD_TYPE __build_type;
+    JOB_STATUS __status;
     Job(const Job&) = default;
     Job(Job&&) noexcept = default;
     Job& operator=(const Job&) = default;
@@ -53,7 +54,7 @@ class SchedulerService {
     protected: 
 
         //internal Buffers : 
-        static std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
+        static std::unordered_map<std::string, std::shared_ptr<Job>> ActiveJobs;
         static std::vector<Job> JobQueue; 
         static std::vector<std::thread> workers;
 

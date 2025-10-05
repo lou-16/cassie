@@ -1,20 +1,20 @@
 #pragma once
 
-#include "schedulerservice.h"
+#include "../scheduler/schedulerserviceimpl.h"
 #include "httplib.h"
 #include "json.hpp"
 #include <fstream>
-#include "utils.h"
+#include "../utils/utils.h"
 #include <memory>
-#include "fetch.h"
+#include "../utils/fetch.h"
 
 using json = nlohmann::json;
 
 typedef struct ContainerInfo {
-    ContainerInfo() : null(true), workingDir("./"), jobInfo(){  };
+    ContainerInfo() : null(true), workingDir("./"), jobInfo(nullptr){  };
     bool null;
     std::string id = "";
-    std::string jobId = ((jobInfo == nullptr || jobInfo->__id == ""  )? "null" : jobInfo->__id);;
+    std::string jobId;
     std::string Image;
     std::string workingDir;
     std::vector<std::string> copyPaths;
@@ -30,6 +30,11 @@ typedef struct ContainerInfo {
     std::map <std::string, std::string> envVars;
 
     std::vector<std::string> volumes;
+    
+    //sorry for the weird naming i cant be bothered to come up with a better way for me to define these
+    std::ostream stdOUT;
+    std::istream stdIN;
+    std::ostream stdERR;
     
 }ContainerInfo;
 

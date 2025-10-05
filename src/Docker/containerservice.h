@@ -1,14 +1,19 @@
 #pragma once 
 
 #include <thread>
-#include "schedulerservice.h"
+#include <fstream>
+#include <memory>
+#include <streambuf>
+#include <unistd.h>
+
 #include "httplib.h"
 #include "json.hpp"
-#include <fstream>
-#include "utils.h"
-#include <memory>
-#include "fetch.h"
 #include "ContainerQueries.h"
+#include "../utils/fetch.h"
+#include "../utils/utils.h"
+#include "../scheduler/schedulerserviceimpl.h"
+
+
 
 using json = nlohmann::json;
 
@@ -24,29 +29,37 @@ class ContainerService {
         static std::vector<std::shared_ptr<ContainerInfo>> containers; 
         static std::unordered_map<std::string,std::shared_ptr<ContainerInfo>> containersMap;
         static std::mutex containersMutex;
+        static std::condition_variable isAvailable;
+
+        static std::vector< std::thread > stdioThreads;
+        static const int max_size_threads = 10;
+        static void stdio_function();
 
         std::shared_ptr<ContainerInfo> findContainer(const std::string& id); //
         bool startContainer(const std::string& name); //
         bool stopContainer(const std::string& name); //
         std::string getContainerStatus(const std::string& name); //
         ~ContainerService() = default; // 
-        std::shared_ptr<ContainerInfo> loadConfigJson(const Job& J); //
-        bool createContainer(const Job& J); //
-
+        std::shared_ptr<ContainerInfo> intialiseContainerInfo(const Job& J); //
+        std::string createContainer(const Job& J); //
+        void initialiseThreads();
 };
 
-std::shared_ptr<ContainerInfo> ContainerService::loadConfigJson(const Job& job_ref) {
+std::shared_ptr<ContainerInfo> ContainerService::intialiseContainerInfo(const Job& job_ref) {
+    {
+        std::unique_lock lck(containersMutex);
+    }
     try {
         std::string filePath = job_ref.location + "/cassie-config.json";
         std::ifstream file(filePath);
         if(!file.is_open()){
-            throw std::runtime_error("[-] loadConfigJson failed");
+            throw std::runtime_error("[-] intialiseContainerInfo failed");
         }
         json j;
         try {
             file >> j;
         }   catch (json::parse_error& e){
-            std::string error = "[-] failed to parse cassie-config.json in loadConfigJson for ContainerService";
+            std::string error = "[-] failed to parse cassie-config.json in intialiseContainerInfo for ContainerService";
             throw std::runtime_error(error);
         }
         auto newContainer = std::make_shared<ContainerInfo>();
@@ -63,9 +76,11 @@ std::shared_ptr<ContainerInfo> ContainerService::loadConfigJson(const Job& job_r
             if (j.contains("envVars")) j.at("envVars").get_to(newContainer->envVars);
             if (j.contains("volumes")) j.at("volumes").get_to(newContainer->volumes);
         }
+        containers.push_back(newContainer);
+        containersMap[newContainer.get()->id] = newContainer;
         return newContainer;
     } catch (std::runtime_error& e){
-        std::cout << "[ContainerService] LoadConfigJson Failed :" << e.what(); 
+        std::cout << "[ContainerService] intialiseContainerInfo Failed :" << e.what(); 
     }
     
 }
@@ -80,7 +95,7 @@ std::shared_ptr<ContainerInfo> ContainerService::findContainer(const std::string
 }
 
 bool ContainerService::startContainer(const std::string& name) {
-    std::shared_lock lock(containersMutex);
+    
     std::shared_ptr<ContainerInfo> container = findContainer(name);
     if(!container) {
         return false;
@@ -96,8 +111,11 @@ bool ContainerService::startContainer(const std::string& name) {
     return res.status == 204;
 }
 
-bool ContainerService::createContainer(const Job& j) {
-    std::shared_ptr<ContainerInfo> Container  = loadConfigJson(j);
+std::string ContainerService::createContainer(const Job& j) {
+
+    
+
+    std::shared_ptr<ContainerInfo> Container  = intialiseContainerInfo(j);
     
     std::string endpoint = "/1.41/containers/create";
 
@@ -112,26 +130,30 @@ bool ContainerService::createContainer(const Job& j) {
     };
 
     FetchResponse res = fetch(client, endpoint, "POST", headers, body.dump());
-    
+
+    {
+        std::unique_lock lock(containersMutex);
+        isAvailable.notify_one();
+    }
+
     json responseToBeParsed = json::parse(res.body, nullptr, false);
     if(res.status == 201 && responseToBeParsed.contains("id")){
         Container.get()->id = responseToBeParsed["id"];
     } else if (responseToBeParsed.contains("message")){
         Container.get()->id = "";
-        std::unique_lock lock(containersMutex);
 
-        return false;
+        return "";
     }
     else{
-        return false;
+        return "";
     }
-    return true;
+    return Container.get()->id;
     
 }
 
-bool ContainerService::stopContainer(const std::string& name) {
+bool ContainerService::stopContainer(const std::string& id) {
     std::shared_lock lock(containersMutex);
-    std::shared_ptr<ContainerInfo> container = findContainer(name);
+    std::shared_ptr<ContainerInfo> container = findContainer(id);
     if (!container) {
         return false;
     }
@@ -145,9 +167,9 @@ bool ContainerService::stopContainer(const std::string& name) {
     return res.status == 204;
 }
 
-std::string ContainerService::getContainerStatus(const std::string& name){
+std::string ContainerService::getContainerStatus(const std::string& id){
     std::shared_lock lock(containersMutex);
-    std::shared_ptr<ContainerInfo> container = findContainer(name);
+    std::shared_ptr<ContainerInfo> container = findContainer(id);
     if(!container) {
         return "CONTAINER_NOT_FOUND";
     }
@@ -170,4 +192,16 @@ std::string ContainerService::getContainerStatus(const std::string& name){
 
 }
 
-std::string ContainerService::startContainer(const std::string& )
+void ContainerService::initialiseThreads() {
+    for(int i = 0; i < max_size_threads; i++) {
+        stdioThreads[i] = std::thread(stdio_function);
+    }
+    return;
+}
+
+void ContainerService::stdio_function() {
+    while(true) {
+        std::unique_lock lck(containersMutex);
+        isAvailable.wait(lck, [](){return !ContainerService.})
+    }
+}

@@ -1,5 +1,4 @@
-#pragma once
-#include "schedulerservice.h"
+#include "../scheduler/schedulerservice.h"
 
 class SchedulerServiceImpl : public SchedulerService {
     public:
@@ -14,4 +13,5 @@ class SchedulerServiceImpl : public SchedulerService {
         void workerThread() override;
         void nodejs_internal_build(const Job&);
         void removeJob(const Job&);
-};
+        Job& getJobRef(const std::string id);
+};  
