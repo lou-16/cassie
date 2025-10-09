@@ -11,7 +11,7 @@ class SchedulerServiceImpl : public SchedulerService {
         std::string enqueueDeployment (const std::string& repoURL, const std::string& prefix);
         void initWorkerPool() override;
         void workerThread() override;
-        void nodejs_internal_build(const Job&);
-        void removeJob(const Job&);
-        Job& getJobRef(const std::string id);
+        int nodejs_internal_build(const std::shared_ptr<Job> j);
+        void removeJob(const std::shared_ptr<Job> j);
+        std::shared_ptr<Job> getJobRef(const std::string id);
 };  
