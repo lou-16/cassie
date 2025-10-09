@@ -1,10 +1,10 @@
 #include "schedulerservice.h"
 
-std::unordered_map<std::string, JOB_STATUS> SchedulerService::ActiveJobs;
-std::vector<Job> SchedulerService::JobQueue;
+std::unordered_map<std::string, std::shared_ptr<Job>> SchedulerService::Jobs;
+std::vector<std::shared_ptr<Job>> SchedulerService::JobQueue;
 std::shared_mutex SchedulerService::sharedMutex;
 std::mutex SchedulerService::uniqueLock;
-std::condition_variable SchedulerService::jobAvailable;
+std::condition_variable SchedulerService::workerThreadCV;
 bool SchedulerService::stop = false;
 std::vector<std::thread> SchedulerService::workers;
 const int SchedulerService::MAX_THREADS;

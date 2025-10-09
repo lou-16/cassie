@@ -54,8 +54,9 @@ class SchedulerService {
     protected: 
 
         //internal Buffers : 
-        static std::unordered_map<std::string, std::shared_ptr<Job>> ActiveJobs;
-        static std::vector<Job> JobQueue; 
+        static std::unordered_map<std::string, std::shared_ptr<Job>> Jobs;
+        //Vector for active jobs (not processed yet.)
+        static std::vector<std::shared_ptr<Job>> JobQueue; 
         static std::vector<std::thread> workers;
 
         //Locks and Mutexes
@@ -63,7 +64,7 @@ class SchedulerService {
         static std::mutex uniqueLock;
 
         //Condition variables
-        static std::condition_variable jobAvailable;
+        static std::condition_variable workerThreadCV;
         static bool stop;
         virtual int setJobStatus() ;
         
