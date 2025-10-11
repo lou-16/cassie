@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SCHEDULERSERVICE_H
+#define SCHEDULERSERVICE_H
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -87,3 +88,5 @@ class SchedulerService {
         virtual int executeJob() ;
         virtual void Shutdown(); //
 };
+
+#endif

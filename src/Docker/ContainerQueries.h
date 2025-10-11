@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONTAINERQUERIES_H
+#define CONTAINERQUERIES_H
 
 #include "../scheduler/schedulerserviceimpl.h"
 #include "httplib.h"
@@ -11,7 +12,7 @@
 using json = nlohmann::json;
 
 typedef struct ContainerInfo {
-    ContainerInfo() : null(true), workingDir("./"), jobInfo(nullptr){  };
+    ContainerInfo() : null(true), workingDir("./"), jobInfo(nullptr){};
     bool null;
     std::string id = "";
     std::string jobId;
@@ -32,9 +33,9 @@ typedef struct ContainerInfo {
     std::vector<std::string> volumes;
     
     //sorry for the weird naming i cant be bothered to come up with a better way for me to define these
-    std::ostream stdOUT;
-    std::istream stdIN;
-    std::ostream stdERR;
+    // std::ostream stdOUT;
+    // std::istream stdIN;
+    // std::ostream stdERR;
     
 }ContainerInfo;
 
@@ -113,3 +114,5 @@ struct HostConfig {
     std::string CgroupParent;
 
 }*/
+
+#endif

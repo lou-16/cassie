@@ -1,5 +1,5 @@
-#pragma once 
-
+#ifndef CONTAINERSERVICE_H
+#define CONTAINERSERVICE_H
 #include <thread>
 #include <fstream>
 #include <memory>
@@ -188,3 +188,4 @@ std::string ContainerService::getContainerStatus(const std::string& id){
 }
 
 
+#endif /* CONTAINERSERVICE_H*/
