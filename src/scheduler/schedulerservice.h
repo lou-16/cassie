@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <thread>
 #include <functional>
+#include "json.hpp"
 // This is the blueprint for the Scheduler service. it shall
 /*
     -> Have a SchedulerService object that is to be default initialised
@@ -19,6 +20,9 @@
        > 3 ; error in cassie-build.json file (incorrect syntax)
        *** extend as per requirements ***
 */
+
+using json = nlohmann::json;
+
 enum BUILD_TYPE {
     NOT_SPECIFIED,
     CPP,
@@ -26,7 +30,7 @@ enum BUILD_TYPE {
 };
 
 enum JOB_STATUS{
-    START = 0,
+    IDLE = 0,
     WORKING = 1,
     COMPLETED = 3,
     FAILED = 4,
@@ -35,8 +39,9 @@ enum JOB_STATUS{
 
 
 typedef struct Job {
+
     std::string __id;
-    std::string location;
+    json config;
     BUILD_TYPE __build_type;
     JOB_STATUS __status;
     Job(const Job&) = default;
@@ -54,6 +59,7 @@ class SchedulerService {
     protected: 
 
         //internal Buffers : 
+
         static std::unordered_map<std::string, std::shared_ptr<Job>> Jobs;
         //Vector for active jobs (not processed yet.)
         static std::vector<std::shared_ptr<Job>> JobQueue; 
