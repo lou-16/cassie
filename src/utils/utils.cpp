@@ -1,5 +1,8 @@
 #include "utils.h"
+#include "httplib.h"
+#include "json.hpp"
 
+using json = nlohmann::json;
 std::string appendEpochTo(const std::string& base){
     using namespace std::chrono;
     auto now = system_clock::now();
@@ -50,3 +53,22 @@ std::string extractRepoName(const std::string& url) {
 
     return appendEpochTo(repoPart);
 }
+
+
+
+struct FetchResponse {
+    httplib::StatusCode status;
+    std::string body;
+    nlohmann::json json;
+
+    // Optional: Constructor to parse JSON automatically
+    FetchResponse(httplib::StatusCode code, const std::string& resp_body)
+        : status(code), body(resp_body) {
+        try {
+            json = nlohmann::json::parse(resp_body);
+        } catch (const nlohmann::json::parse_error& e) {
+            json = nlohmann::json(); // Empty JSON on parse failure
+        }
+    }
+};
+

@@ -38,19 +38,25 @@ typedef struct Job {
     std::string __id;
     std::string location;
     BUILD_TYPE __build_type;
-    Job() = default;
+    JOB_STATUS __status;
     Job(const Job&) = default;
     Job(Job&&) noexcept = default;
     Job& operator=(const Job&) = default;
     Job& operator=(Job&&) noexcept = default;
+    Job() = default;
 }Job;
+
+// for interal purposes, no such job needs to be created
+inline Job emptyJob;
+
 
 class SchedulerService {
     protected: 
 
         //internal Buffers : 
-        static std::unordered_map<std::string, JOB_STATUS> ActiveJobs;
-        static std::vector<Job> JobQueue; 
+        static std::unordered_map<std::string, std::shared_ptr<Job>> Jobs;
+        //Vector for active jobs (not processed yet.)
+        static std::vector<std::shared_ptr<Job>> JobQueue; 
         static std::vector<std::thread> workers;
 
         //Locks and Mutexes
@@ -58,7 +64,7 @@ class SchedulerService {
         static std::mutex uniqueLock;
 
         //Condition variables
-        static std::condition_variable jobAvailable;
+        static std::condition_variable workerThreadCV;
         static bool stop;
         virtual int setJobStatus() ;
         
