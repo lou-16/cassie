@@ -16,6 +16,7 @@ import Overview from "./pages/Dashboard/Overview"
 import Deployments from "./pages/Dashboard/Deployments"
 import Domains from "./pages/Dashboard/Domains"
 import Settings from "./pages/Dashboard/Settings"
+import LogoutPage from "./pages/LogoutPage"
 
 function App() {
 
@@ -38,6 +39,7 @@ function App() {
       </Route>
       <Route path="*" element={<BaseLayout><NotFound /></BaseLayout>} />
       <Route path="/SignUp" element={<BaseLayout> <SignupPage /></BaseLayout>} />
+      <Route path="/Logout" element={<BaseLayout><LogoutPage /></BaseLayout>} />
     </Routes>
     <Footer />
     </div>

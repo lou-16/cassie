@@ -39,7 +39,11 @@ export default function Navbar(){
         } 
         {
             currentUser && 
-            <p>Welcome, {currentUser.email}</p>
+            <div>
+                <span>Welcome, {currentUser.email} 
+                <button onClick={() => navigator("/Logout")} className="mr-16 ml-16 pl-4 pr-4 p-1 rounded-md border hover:bg-white hover:text-black transition-all duration-150 ease-in-out">Logout</button>
+                </span>
+            </div>
         }
 </div>)
 }
