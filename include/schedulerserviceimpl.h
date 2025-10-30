@@ -1,4 +1,7 @@
-#include "../scheduler/schedulerservice.h"
+#ifndef SCHEDULERSERVICEIMPL_H
+#define SCHEDULERSERVICEIMPL_H
+
+#include "schedulerservice.h"
 
 class SchedulerServiceImpl : public SchedulerService {
     public:
@@ -8,10 +11,12 @@ class SchedulerServiceImpl : public SchedulerService {
         int executeJob(const std::string id);
 
         int setJobStatus(const std::string id, const JOB_STATUS status);
-        std::string enqueueDeployment (const std::string& repoURL, const json& config);
+        std::string enqueueDeployment (const std::string& repoURL, const json& config, const std::string& ProjectType);
         void initWorkerPool() override;
         void workerThread() override;
         int nodejs_internal_build(const std::shared_ptr<Job> j);
         void removeJob(const std::shared_ptr<Job> j);
-        std::shared_ptr<Job> getJobRef(const std::string id);
+        std::optional<std::reference_wrapper<Job>> getJobRef(const std::string& id);
+        
 };  
+#endif

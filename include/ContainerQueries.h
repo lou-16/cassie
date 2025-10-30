@@ -1,13 +1,13 @@
 #ifndef CONTAINERQUERIES_H
 #define CONTAINERQUERIES_H
 
-#include "../scheduler/schedulerserviceimpl.h"
+#include "schedulerserviceimpl.h"
 #include "httplib.h"
 #include "json.hpp"
 #include <fstream>
-#include "../utils/utils.h"
+#include "utils.h"
 #include <memory>
-#include "../utils/fetch.h"
+#include "fetch.h"
 
 using json = nlohmann::json;
 
@@ -73,9 +73,9 @@ struct createContainerQuery {
 
 namespace ns 
 {
-    void to_json(json& j, const createContainerQuery& c)
+    inline void to_json(nlohmann::json& j, const createContainerQuery& c)
     {
-        j = json{
+        j = nlohmann::json{
             {"Hostname" , c.Hostname},
             {"Domainame", c.Domainame},
             {"User", c.User},

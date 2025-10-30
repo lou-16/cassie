@@ -9,7 +9,11 @@
 #include <condition_variable>
 #include <thread>
 #include <functional>
+#include <optional>
+#include <functional>
 #include "json.hpp"
+
+
 // This is the blueprint for the Scheduler service. it shall
 /*
     -> Have a SchedulerService object that is to be default initialised
@@ -38,13 +42,16 @@ enum JOB_STATUS{
     NOT_FOUND = 5
 };
 
+struct ContainerInfo;
 
 typedef struct Job {
 
     std::string __id;
-    json config;
+    json __config;
     BUILD_TYPE __build_type;
     JOB_STATUS __status;
+    std::vector<std::reference_wrapper<ContainerInfo>> __containers;
+
     Job(const Job&) = default;
     Job(Job&&) noexcept = default;
     Job& operator=(const Job&) = default;
@@ -68,10 +75,9 @@ class SchedulerService {
 
         //Locks and Mutexes
         static std::shared_mutex sharedMutex;
-        static std::mutex uniqueLock;
 
         //Condition variables
-        static std::condition_variable workerThreadCV;
+        static std::condition_variable_any workerThreadCV;
         static bool stop;
         virtual int setJobStatus() ;
         
@@ -82,11 +88,18 @@ class SchedulerService {
         virtual void workerThread(); //
         virtual ~SchedulerService() = default;  
     public:
+        //SchedulerService();
         virtual void initWorkerPool(); // 
         virtual JOB_STATUS getJobStatus();
         virtual JOB_STATUS addJobToQueue();
         virtual int executeJob() ;
         virtual void Shutdown(); //
 };
+/*
+    TEST(addJobToQueue, SchedulerService) {
+        ASSERT(addJobToQueue, 0);
+        FAIL(test, _id, FAIL)
+    }
+*/
 
 #endif

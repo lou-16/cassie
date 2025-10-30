@@ -1,5 +1,5 @@
 #include "schedulerserviceimpl.h"
-#include "../utils/utils.h"
+#include "utils.h"
 #include <thread>
 #include <algorithm>
 #include <iostream>
@@ -8,7 +8,6 @@
 #include <memory>
 using json = nlohmann::json;
 
-#include "../git/gitserviceimpl.h"
 // Set the job status in the active jobs map
 int SchedulerServiceImpl::setJobStatus(const std::string id, const JOB_STATUS status)
 {
@@ -43,10 +42,10 @@ JOB_STATUS SchedulerServiceImpl::addJobToQueue(const std::string id, const json 
 {
     //std::cout << "[+] addJobToQueue called";
     /* makes a shared pointer for a job object*/
-    auto ptr = std::make_shared<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE});
+    std::shared_ptr<Job> ptr = std::make_shared<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE});
     {
         /* modifies the internal buffers */
-        std::unique_lock lock(uniqueLock);
+        std::unique_lock lock(sharedMutex);
         JobQueue.push_back(ptr);
         Jobs[id] = ptr;
     }
@@ -83,8 +82,8 @@ int SchedulerServiceImpl::executeJob(const std::string id)
     {
     case BUILD_TYPE::NODEJS:
         Jobs[jobToExecute.__id].get()->__status = JOB_STATUS::WORKING;
-        nodejs_internal_build(*it);
-        break;
+        //nodejs_internal_build(*it);
+            break;
     case BUILD_TYPE::CPP:
         // TODO: implement logic
         break;
@@ -124,7 +123,7 @@ int SchedulerServiceImpl::nodejs_internal_build(const std::shared_ptr<Job> ptr)
 void SchedulerServiceImpl::removeJob(const std::shared_ptr<Job> j)
 {
     /* locking the mutex */
-    std::unique_lock lock(uniqueLock);
+    std::unique_lock lock(sharedMutex);
     /* using a find_if to get the iterator*/
     auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [j](const std::shared_ptr<Job> &x)
                            { return x.get()->__id == j.get()->__id; });
@@ -133,14 +132,6 @@ void SchedulerServiceImpl::removeJob(const std::shared_ptr<Job> j)
     {   
         /* method to remove a value from the Queue*/
         JobQueue.erase(it);
-    }
-    /* iterator for the map */
-    auto it2 = Jobs.find(j.get()->__id);
-    /* validity check */
-    if (it2 != Jobs.end())
-    {
-        /* erase from map */
-        Jobs.erase(j.get()->__id);
     }
     return;
 }
@@ -154,15 +145,15 @@ void SchedulerServiceImpl::removeJob(const std::shared_ptr<Job> j)
       > the redis cache (backend)
 
 */
-std::string SchedulerServiceImpl::enqueueDeployment(const std::string &RepoURL, const json& config)
+std::string SchedulerServiceImpl::enqueueDeployment(const std::string &RepoURL, const json& config, const std::string& ProjectType)
 {   
     /* done. that was relatively quick */
 
     /* create a new ID for JobID purposes */
     std::string id = createUniqueId();
-    BUILD_TYPE currType = [&config]() -> BUILD_TYPE
+    BUILD_TYPE currType = [&config, &ProjectType]() -> BUILD_TYPE
     {
-        std::string type = config["project_type"];
+        std::string type = ProjectType;
         if (type == "c++" || type == "c" || type == "cpp")
         {
             return BUILD_TYPE::CPP;
@@ -176,8 +167,11 @@ std::string SchedulerServiceImpl::enqueueDeployment(const std::string &RepoURL, 
             return BUILD_TYPE::NOT_SPECIFIED;
         }
     }();
-    addJobToQueue(id, config, currType);
-    return id;
+    /* addJobToQueue returns an enum 0 */
+    if(!addJobToQueue(id, config, currType)){
+        return id;
+    }
+    return "";
 }
 
 void SchedulerServiceImpl::initWorkerPool()
@@ -195,11 +189,11 @@ void SchedulerServiceImpl::workerThread()
 {
     while (!stop)
     {
-        std::unique_lock lock(uniqueLock);
+        std::unique_lock<std::shared_mutex> lock(sharedMutex);
 
         /* wait takes in a lock that needs to be locked before any work is done, and a predicate that needs 
            to return true */
-        workerThreadCV.wait(lock, []
+        workerThreadCV.wait(lock, [this]
             { 
                     /* checks if JobQueue has an element */
                     return !JobQueue.empty() || stop;
@@ -207,7 +201,7 @@ void SchedulerServiceImpl::workerThread()
         /* check if stop is true, since even if it is true, the whole while block will finish exec first
            so we continue to let this iteration end
          */
-        if(stop) {continue;}
+        if(stop && JobQueue.empty()) {break;}
         
         // Now we are guaranteed there's a job
         Job& _j = *(JobQueue.front());
@@ -220,17 +214,23 @@ void SchedulerServiceImpl::workerThread()
     }
 }
 
-/* this works, comments will be done later */
-std::shared_ptr<Job> SchedulerServiceImpl::getJobRef(const std::string id)
+/* returns a std::reference_wrapper<Job>*/
+std::optional<std::reference_wrapper<Job>> SchedulerServiceImpl::getJobRef(const std::string& id)
 {
     /* locks the map */
-    std::unique_lock lock(uniqueLock);
+    std::shared_lock lock(sharedMutex);
     
     /* finds the iterator using find_if*/
-    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [id](const std::shared_ptr<Job> &j)
-                           { return j.get()->__id == id; });
+    auto it = Jobs.find(id);
     
-    /* creates a pointer, then checks if iterator is valid. if yes, then deref the iterator, if no, then an empty pointer*/
-    return (it != JobQueue.end())? *it : std::shared_ptr<Job>();
+    if(it == Jobs.end())
+    {
+        return std::nullopt;
+    }
+    else 
+    {
+        return *(it->second.get());
+    }
     
 }
+

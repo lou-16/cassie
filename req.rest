@@ -1,0 +1,18 @@
+
+# @name responseBody
+POST http://localhost:8080/project/add HTTP/1.1
+
+{
+    "repo" : "https://github.com/lou-16/krnl.git",
+    "config" : {},
+    "project_type" : "nodejs" 
+}   
+
+# @ref responseBody
+
+POST http://localhost:8080/containers/create HTTP/1.1
+
+{
+    "id" : "00000199fe0c3a694658",
+    "config" : {"baseImage": "alpine:latest"}
+}

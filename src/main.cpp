@@ -1,17 +1,17 @@
 #include <httplib.h>
 #include <json.hpp>
 #include <iostream>
-#include "git/gitserviceimpl.h"
 #include <ctime>
-#include "utils/utils.h"
-#include "scheduler/schedulerserviceimpl.h"
-#include "Docker/containerservice.h"
+#include "utils.h"
+#include "schedulerserviceimpl.h"
+#include "containerservice.h"
 
 using json = nlohmann::json;
 
-SchedulerServiceImpl Scheduler;
-ContainerService ContainerServiceObject;
 int main() {
+
+    SchedulerServiceImpl Scheduler;
+    ContainerService ContainerServiceObject;
     httplib::Server svr;
     
     Scheduler.initWorkerPool();
@@ -19,7 +19,7 @@ int main() {
     svr.Get("/", [](const httplib::Request& req , httplib::Response& res) {
         std::cout << req.body;
         //json j = { {"message", "Hello from C++!"} };
-        res.set_content("Hello from C++","text/plain");
+        res.set_content("Hello from C++\n","text/plain");
     });
 
 
@@ -29,14 +29,14 @@ int main() {
             "repo" : "{GIT_REPO_URL_PUBLIC}",
         }
     */
-svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
+svr.Post("/project/add", [&](const httplib::Request& req, httplib::Response& res) {
     try {
         json data = json::parse(req.body);
         std::string repoURL = data["repo"];
-
+        json config = data["config"]; // docker config
+        json project_type = data["project_type"]; // nodejs (), llm 
         try {
-            std::string outputFolder = "../deployments/" + extractRepoName(repoURL);
-            std::string job_id = Scheduler.enqueueDeployment(repoURL, outputFolder);
+            std::string job_id = Scheduler.enqueueDeployment(repoURL, config, project_type);
 
             json responseData = {
                 {"message", "your deployment request has been pushed for processing"},
@@ -56,59 +56,85 @@ svr.Post("/deploy", [](const httplib::Request& req, httplib::Response& res) {
     }
 });
 
-svr.Get("/containers/:id/status", [&](const httplib::Request& req, httplib::Response& res){
-    try {
-        json data = json::parse(req.body);
-        auto user_id = req.path_params.at("id");
-        std::string containerStatus = ContainerServiceObject.getContainerStatus(user_id);
-        if(user_id == ""){
+svr.Get("/containers/status", [&](const httplib::Request& req, httplib::Response& res){
+    try 
+    {
+        std::string user_id;
+        if(req.has_param("id")){
+            user_id = req.get_param_value("id");
+        } else {
             throw new std::exception();
         }
-        else {
+        std::string containerStatus = ContainerServiceObject.getContainerStatus(user_id);
+        
             json jsonResponse = 
             {
                 {"status" , std::string(containerStatus)}
             };
             res.status = httplib::OK_200;
             res.set_content(jsonResponse.dump(), "application/json");
-        }
-    } catch (const std::exception& e){
-        res.status = httplib::NotFound_404;
-        res.set_content("failure", "text/plain");
+    } 
+    catch (const std::exception& e)
+    {
+            res.status = httplib::NotFound_404;
+            res.set_content("failure : " + std::string(e.what()), "text/plain");
     }
 });
 
-svr.Post("/containers/:id/create", [&](const httplib::Request& req, httplib::Response& res) {
+svr.Post("/containers/create", [&](const httplib::Request& req, httplib::Response& res) {
     try {
         json data = json::parse(req.body);
-        auto container_id = req.path_params.at("id");
-        std::string job_id = data["JobID"].is_string() ? data["JobID"] : "";
-        Job& jobRef = Scheduler.getJobRef(job_id);
-        if(jobRef.__id == emptyJob.__id){
+        std::cerr << "[DEBUG] Parsed request body: " << data.dump(4) << std::endl;
+
+        if (!data.contains("id") || !data["id"].is_string()) {
             res.status = httplib::BadRequest_400;
-            res.set_content("jobId in the post req body does not correspond to a correct container/ job", "text/plain");
+            res.set_content("Invalid JSON: 'id' missing or not a string", "text/plain");
+            return;
         }
-        std::string id = ContainerServiceObject.createContainer(jobRef);
-        json response = 
-        {
-            {"status", 200},
-        };
+
+        std::string job_id = data["id"];
+        std::cerr << "[DEBUG] job_id = " << job_id << std::endl;
+
+        auto ref = Scheduler.getJobRef(job_id);
+        std::cerr << "[DEBUG] does ref exist? and ref value is? : " << (ref.has_value()? "true" : "false") << std::endl;
+        if (!ref) {
+            res.status = httplib::BadRequest_400;
+            res.set_content("jobId in the post req body does not correspond to a correct container/job", "text/plain");
+            return;
+        }
+
+        std::cerr << "[DEBUG] Creating container..." << std::endl;
+        ContainerServiceObject.initialiseContainerInfo(ref->get(), ref->get().__config);
         
+        auto r = ContainerServiceObject.createContainer(ref->get().__id);
+
+        std::cerr << "[DEBUG] Container created successfully." << std::endl;
+        auto id = r->get().id;
+
+        json response = {
+            {"status", 200},
+            {"containerId", id},
+        };
         res.status = httplib::OK_200;
         res.set_content(response.dump(), "application/json");
-    } catch (const std::exception& e) {
+
+    } catch (const nlohmann::json::exception& e) {
+        std::cerr << "[JSON ERROR] " << e.what() << std::endl;
         res.status = httplib::Forbidden_403;
-        res.set_content("forbidden", "text/plain");
+        res.set_content("forbidden : " + std::string(e.what()), "text/plain");
+    } catch (const std::exception& e) {
+        std::cerr << "[STD ERROR] " << e.what() << std::endl;
+        res.status = httplib::Forbidden_403;
+        res.set_content("forbidden : " + std::string(e.what()), "text/plain");
     }
 });
 
+
     svr.set_logger([](const httplib::Request &req, const httplib::Response &res){
-        std::cout << "[LOG]"<< req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << std::endl;
-        if(req.method == "POST" && req.path == "/deploy"){
-        }
+        std::cout << "\n[LOG]"<< req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << std::endl;
     });
 
-    std::cout << "Server is up and running";
+    std::cout << "\n[+]Server is up and running\n";
     svr.listen("0.0.0.0", 8080);
     return 0;
 }

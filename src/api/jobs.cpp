@@ -1,7 +1,7 @@
 #include <httplib.h>
-#include "../scheduler/schedulerserviceimpl.h"
+#include "schedulerserviceimpl.h"
 
-extern SchedulerServiceImpl Scheduler;
+SchedulerServiceImpl Scheduler;
 
 void getJobsProtected(const httplib::Request& req, httplib::Response res) 
 {
