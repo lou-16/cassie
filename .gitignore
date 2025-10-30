@@ -70,3 +70,4 @@ test_detail.xml
 LastTest.log
 
 deployments
+build-clang
