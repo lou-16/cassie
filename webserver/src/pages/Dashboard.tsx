@@ -1,4 +1,5 @@
 import ProjectCard from "../components/ProjectCard";
+import Searchbar from '../components/Searchbar'
 
 import React, { useEffect } from "react";
 import { ProtectedRoute } from "../components/ProtectedRoute";
@@ -32,7 +33,7 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      
+      <Searchbar />
     </ProtectedRoute>
   );
 }

@@ -16,8 +16,8 @@ const LogoutPage = () => {
             console.error('error signing out: ', err);
             navigate("/NotFound");
         })
-    }, [navigate]);
+    }, []);
     return <p>Logging out....</p>
 }
 
-export default LogoutPage;
+export default LogoutPage; 
