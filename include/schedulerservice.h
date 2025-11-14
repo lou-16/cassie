@@ -52,6 +52,9 @@ typedef struct Job {
     JOB_STATUS __status;
     std::vector<std::reference_wrapper<ContainerInfo>> __containers;
 
+    // temporary vector for container ids for serialization purposes
+    std::vector<std::string> __containerIds;
+    
     Job(const Job&) = default;
     Job(Job&&) noexcept = default;
     Job& operator=(const Job&) = default;
@@ -61,8 +64,6 @@ typedef struct Job {
 
 // for interal purposes, no such job needs to be created
 inline Job emptyJob;
-
-
 class SchedulerService {
     protected: 
 
@@ -95,11 +96,30 @@ class SchedulerService {
         virtual int executeJob() ;
         virtual void Shutdown(); //
 };
-/*
-    TEST(addJobToQueue, SchedulerService) {
-        ASSERT(addJobToQueue, 0);
-        FAIL(test, _id, FAIL)
+
+namespace ns {
+    void to_json(nlohmann::json& jsonObj, const Job& j)
+    {
+        std::vector<std::string> containerIds;
+        containerIds.reserve(j.__containers.size());
+        for (const auto& ref : j.__containers)
+        {
+            containerIds.push_back(ref.get().id);
+        }
+        jsonObj = nlohmann::json{
+            {"jobId", j.__id},
+            {"config", j.__config},
+            {"build_type", j.__build_type},
+            {"containers", containerIds}
+        }  ;
     }
-*/
+    void from_json(nlohmann::json& j, Job& job)
+    {
+        j.at("jobId").get_to(job.__id);
+        j.at("config").get_to(job.__config);
+        j.at("build_type").get_to(job.__build_type);
+        j.at("containers").get_to(job.__containerIds);
+    }
+}
 
 #endif
