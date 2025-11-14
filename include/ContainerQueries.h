@@ -12,8 +12,8 @@
 using json = nlohmann::json;
 
 typedef struct ContainerInfo {
-    ContainerInfo() : null(true), workingDir("./"), jobInfo(nullptr){};
-    bool null;
+    ContainerInfo() : status(true), workingDir("./"), jobInfo(nullptr){};
+    bool status;
     std::string id = "";
     std::string jobId;
     std::string Image;
@@ -31,12 +31,6 @@ typedef struct ContainerInfo {
     std::map <std::string, std::string> envVars;
 
     std::vector<std::string> volumes;
-    
-    //sorry for the weird naming i cant be bothered to come up with a better way for me to define these
-    // std::ostream stdOUT;
-    // std::istream stdIN;
-    // std::ostream stdERR;
-    
 }ContainerInfo;
 
 struct createContainerQuery {
@@ -104,8 +98,26 @@ namespace ns
             {"NetworkingConfig", c.NetworkingConfig}
         };
     }
-}
 
+    void to_json(json& j, const ContainerInfo& c) {
+    j = json{
+        {"status", c.status},
+        {"id", c.id},
+        {"jobId", c.jobId},
+        {"Image", c.Image},
+        {"workingDir", c.workingDir},
+        {"copyPaths", c.copyPaths},
+        {"aptPkgs", c.aptPkgs},
+        {"buildCommands", c.buildCommands},
+        {"entryPoint", c.entryPoint},
+        {"cmd", c.cmd},
+        {"exposedPorts", c.exposedPorts},
+        {"envVars", c.envVars},
+        {"volumes", c.volumes}
+    };
+    }
+
+}
 // TODO IMPLEMENT THIS FURTHER.
 /* 
 struct HostConfig {
