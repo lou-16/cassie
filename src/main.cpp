@@ -109,6 +109,7 @@ svr.Post("/containers/create", [&](const httplib::Request& req, httplib::Respons
         auto r = ContainerServiceObject.createContainer(ref->get().__id);
 
         std::cerr << "[DEBUG] Container created successfully." << std::endl;
+        ref.value().get().__containers.push_back(*r);
         auto id = r->get().id;
 
         json response = {
