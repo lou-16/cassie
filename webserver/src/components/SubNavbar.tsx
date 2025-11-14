@@ -11,7 +11,7 @@ export default function SubNavbar() {
   ];
 
   return (
-    <div className="flex gap-6 px-8 py-3 bg-[#0d0d0d] text-gray-300 border-b border-gray-800 overflow-x-auto">
+    <div className="flex gap-6 px-8 py-3 bg-[#0d0d0d] text-gray-300 border-b border-gray-800 overflow-x-auto self-center border-t">
       {tabs.map((tab) => (
         <button
           key={tab}

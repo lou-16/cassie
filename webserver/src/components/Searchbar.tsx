@@ -1,7 +1,11 @@
-const Searchbar = () => {
-    return (<div className="w-2/3 h-12 border border-white/20 rounded-2xl antialiased flex items-center px-3 py-2 
+interface SearchBarProps {
+    className : string
+}
+
+const Searchbar = (props : SearchBarProps) => {
+    return (<div className={`${()=>{return props.className? props.className : "w-2/3"}} h-12 border border-white/20 rounded-2xl antialiased flex items-center px-3 py-2 
         backdrop-blur-md shadow-[0_4px_20px_rgba(0, 0, 0, 0.1)]
-        transition-all duration-200 focus-within:shadow-[0_0_0_2px_rgba(59, 130, 246, 0.4)]">
+        transition-all duration-200 focus-within:shadow-[0_0_0_2px_rgba(59, 130, 246, 0.4)]`}>
             <input 
                 type='text'
                 placeholder="search through your projects!"

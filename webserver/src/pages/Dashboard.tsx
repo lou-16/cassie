@@ -33,7 +33,10 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <Searchbar />
+      <div>
+      <Searchbar className="w-3xl" />
+
+      </div>
     </ProtectedRoute>
   );
 }
