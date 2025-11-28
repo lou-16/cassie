@@ -11,6 +11,8 @@
 
 using json = nlohmann::json;
 
+struct Job; 
+
 typedef struct ContainerInfo {
     ContainerInfo() : status(true), workingDir("./"), jobInfo(nullptr){};
     bool status;
@@ -65,59 +67,7 @@ struct createContainerQuery {
     json NetworkingConfig; 
 };
 
-namespace ns 
-{
-    inline void to_json(nlohmann::json& j, const createContainerQuery& c)
-    {
-        j = nlohmann::json{
-            {"Hostname" , c.Hostname},
-            {"Domainame", c.Domainame},
-            {"User", c.User},
-            {"AttachStdin", c.AttachStdin},
-            {"AttachStdOut", c.AttachStdOut},
-            {"ExposedPorts", c.ExposedPorts},
-            {"Tty", c.Tty},
-            {"OpenStdin", c.OpenStdin},
-            {"StdinOnce", c.StdinOnce},
-            {"Env", c.Env},
-            {"Cmd", c.Cmd},
-            {"Healthcheck", c.Healthcheck},
-            {"ArgsEscaped", c.ArgsEscaped || false},
-            {"Image" , c.Image},
-            {"Volumes", c.Volumes},
-            {"WorkingDir", c.WorkingDir},
-            {"Entrypoint", c.Entrypoint},
-            {"NetworkDisabled", c.NetworkDisabled},
-            {"MacAddress", c.MacAddress},
-            {"OnBuild", c.Onbuild},
-            {"Labels", c.Labels},
-            {"StopSignal", c.StopSignal},
-            {"StopTimeout", c.Stoptimeout},
-            {"Shell", c.shell},
-            {"HostConfig", c.HostConfig},
-            {"NetworkingConfig", c.NetworkingConfig}
-        };
-    }
 
-    void to_json(json& j, const ContainerInfo& c) {
-    j = json{
-        {"status", c.status},
-        {"id", c.id},
-        {"jobId", c.jobId},
-        {"Image", c.Image},
-        {"workingDir", c.workingDir},
-        {"copyPaths", c.copyPaths},
-        {"aptPkgs", c.aptPkgs},
-        {"buildCommands", c.buildCommands},
-        {"entryPoint", c.entryPoint},
-        {"cmd", c.cmd},
-        {"exposedPorts", c.exposedPorts},
-        {"envVars", c.envVars},
-        {"volumes", c.volumes}
-    };
-    }
-
-}
 // TODO IMPLEMENT THIS FURTHER.
 /* 
 struct HostConfig {

@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "schedulerserviceimpl.h"
 #include <optional>
+#include <variant>
 
 
 
@@ -21,9 +22,14 @@ using json = nlohmann::json;
 class ContainerService {
     private:
         httplib::Client client;
+        std::variant<std::nullptr_t,SchedulerServiceImpl&> scheduler;
     public:
         /* TODO : Switch this out for a non-blocking socket I/O lib */
-        ContainerService() : client("unix://var/run/docker.sock") {
+        ContainerService() : client("unix://var/run/docker.sock"), scheduler(nullptr) {
+            if(auto svc = std::get_if<SchedulerServiceImpl>(&scheduler))
+            {
+                
+            }
             client.set_connection_timeout(5); //seconds
             client.set_read_timeout(5);
             client.set_write_timeout(5);
@@ -31,7 +37,7 @@ class ContainerService {
                 std::cout << "connected to docker socket\n";
             }
         };
-        /* key : jobId from Scheduler, key : unique_ptr to the container associated  */
+        /* key : containerId, key : unique_ptr to the container associated  */
         static std::unordered_map<std::string,std::unique_ptr<ContainerInfo>> containersMap;
         static std::shared_mutex containersMutex; /* mutex for the containersMap */
      
@@ -40,11 +46,11 @@ class ContainerService {
         /* non-const returned, they can change the inside of the function*/
         
         /* API */
-        std::optional<std::reference_wrapper<ContainerInfo>> findContainer (const std::string& JobID); //
+        ContainerInfo* findContainer (const std::string& JobID); //
         bool startContainer                         (const std::string& JobID); //
         bool stopContainer                          (const std::string& JobID); //
         std::string getContainerStatus              (const std::string& JobID); //
-        std::optional<std::reference_wrapper<ContainerInfo>> createContainer(const std::string& JobID);
+        ContainerInfo* createContainer(const std::string& JobID);
 
         /* destructor TODO : delete/free all ptrs to the containers. this will cause a memory leak if not fixed */
         ~ContainerService() = default; // 

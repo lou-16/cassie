@@ -42,7 +42,7 @@ JOB_STATUS SchedulerServiceImpl::addJobToQueue(const std::string id, const json 
 {
     //std::cout << "[+] addJobToQueue called";
     /* makes a shared pointer for a job object*/
-    std::shared_ptr<Job> ptr = std::make_shared<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE});
+    std::shared_ptr<Job> ptr = std::make_shared<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE,{}});
     {
         /* modifies the internal buffers */
         std::unique_lock lock(sharedMutex);
@@ -143,7 +143,6 @@ void SchedulerServiceImpl::removeJob(const std::shared_ptr<Job> j)
       tracking the userID -> jobID relation is of both:
       > the database (backend)
       > the redis cache (backend)
-
 */
 std::string SchedulerServiceImpl::enqueueDeployment(const std::string &RepoURL, const json& config, const std::string& ProjectType)
 {   

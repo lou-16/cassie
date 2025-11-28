@@ -8,20 +8,20 @@
 
 using json = nlohmann::json;
 
-int main() {
+int main()
+{
 
     SchedulerServiceImpl Scheduler;
     ContainerService ContainerServiceObject;
     httplib::Server svr;
-    
+
     Scheduler.initWorkerPool();
 
-    svr.Get("/", [](const httplib::Request& req , httplib::Response& res) {
+    svr.Get("/", [](const httplib::Request &req, httplib::Response &res)
+            {
         std::cout << req.body;
         //json j = { {"message", "Hello from C++!"} };
-        res.set_content("Hello from C++\n","text/plain");
-    });
-
+        res.set_content("Hello from C++\n","text/plain"); });
 
     // the body should be of this format:
     /*
@@ -29,7 +29,8 @@ int main() {
             "repo" : "{GIT_REPO_URL_PUBLIC}",
         }
     */
-svr.Post("/project/add", [&](const httplib::Request& req, httplib::Response& res) {
+    svr.Post("/project/add", [&](const httplib::Request &req, httplib::Response &res)
+             {
     try {
         json data = json::parse(req.body);
         std::string repoURL = data["repo"];
@@ -53,10 +54,10 @@ svr.Post("/project/add", [&](const httplib::Request& req, httplib::Response& res
     } catch (const std::exception& e) {
         res.status = 400;
         res.set_content(std::string("invalid json: ") + e.what(), "text/plain");
-    }
-});
+    } });
 
-svr.Get("/containers/status", [&](const httplib::Request& req, httplib::Response& res){
+    svr.Get("/containers/status", [&](const httplib::Request &req, httplib::Response &res)
+            {
     try 
     {
         std::string user_id;
@@ -78,13 +79,13 @@ svr.Get("/containers/status", [&](const httplib::Request& req, httplib::Response
     {
             res.status = httplib::NotFound_404;
             res.set_content("failure : " + std::string(e.what()), "text/plain");
-    }
-});
+    } });
 
-svr.Post("/containers/create", [&](const httplib::Request& req, httplib::Response& res) {
+    svr.Post("/containers/create", [&](const httplib::Request &req, httplib::Response &res)
+             {
     try {
         json data = json::parse(req.body);
-        std::cerr << "[DEBUG] Parsed request body: " << data.dump(4) << std::endl;
+        std::cerr << "[DEBUG] Parsed request body: " << data.dump(4) << "\n";
 
         if (!data.contains("id") || !data["id"].is_string()) {
             res.status = httplib::BadRequest_400;
@@ -93,24 +94,29 @@ svr.Post("/containers/create", [&](const httplib::Request& req, httplib::Respons
         }
 
         std::string job_id = data["id"];
-        std::cerr << "[DEBUG] job_id = " << job_id << std::endl;
+        std::cerr << "[DEBUG] job_id = " << job_id << "\n";
 
         auto ref = Scheduler.getJobRef(job_id);
-        std::cerr << "[DEBUG] does ref exist? and ref value is? : " << (ref.has_value()? "true" : "false") << std::endl;
+        std::cerr << "[DEBUG] does ref exist? and ref value is? : " << (ref.has_value()? "true" : "false") << "\n";
         if (!ref) {
             res.status = httplib::BadRequest_400;
             res.set_content("jobId in the post req body does not correspond to a correct container/job", "text/plain");
             return;
         }
 
-        std::cerr << "[DEBUG] Creating container..." << std::endl;
+        std::cerr << "[DEBUG] Creating container..." << "\n";
         ContainerServiceObject.initialiseContainerInfo(ref->get(), ref->get().__config);
         
         auto r = ContainerServiceObject.createContainer(ref->get().__id);
 
-        std::cerr << "[DEBUG] Container created successfully." << std::endl;
-        ref.value().get().__containers.push_back(*r);
-        auto id = r->get().id;
+        std::cerr << "[DEBUG] Container created successfully." << "\n";
+        // modern c++ is mad. how does this say that we r checking if a job's container set got a particular container or not?
+        // who knows.
+        if(ref->get().__containers.insert(r->id).second)
+        {
+            std::cerr << "[DEBUG] Container added to job's containers set" << "\n";
+        }
+        auto id = r->id;
 
         json response = {
             {"status", 200},
@@ -120,20 +126,17 @@ svr.Post("/containers/create", [&](const httplib::Request& req, httplib::Respons
         res.set_content(response.dump(), "application/json");
 
     } catch (const nlohmann::json::exception& e) {
-        std::cerr << "[JSON ERROR] " << e.what() << std::endl;
+        std::cerr << "[JSON ERROR] " << e.what() << "\n";
         res.status = httplib::Forbidden_403;
         res.set_content("forbidden : " + std::string(e.what()), "text/plain");
     } catch (const std::exception& e) {
-        std::cerr << "[STD ERROR] " << e.what() << std::endl;
+        std::cerr << "[STD ERROR] " << e.what() << "\n";
         res.status = httplib::Forbidden_403;
         res.set_content("forbidden : " + std::string(e.what()), "text/plain");
-    }
-});
+    } });
 
-
-    svr.set_logger([](const httplib::Request &req, const httplib::Response &res){
-        std::cout << "\n[LOG]"<< req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << std::endl;
-    });
+    svr.set_logger([](const httplib::Request &req, const httplib::Response &res)
+                   { std::cout << "\n[LOG]" << req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << "\n"; });
 
     std::cout << "\n[+]Server is up and running\n";
     svr.listen("0.0.0.0", 8080);

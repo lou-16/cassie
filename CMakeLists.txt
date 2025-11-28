@@ -6,12 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 add_compile_definitions("DEBUG=$<CONFIG:Debug")
+add_compile_definitions()
 
 include_directories(include)
 file(GLOB HEADERS "include/*.h")
 include_directories(${HEADERS})
 file(GLOB SOURCES "src/*/*.cpp")
 add_executable(server ${SOURCES} src/main.cpp)
+
+target_compile_definitions(server PRIVATE "-Wall" "-Wextra" "-pedantic" "-g" "-O0")
 
 #link winsock 
 if (WIN32)

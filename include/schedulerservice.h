@@ -1,5 +1,4 @@
-#ifndef SCHEDULERSERVICE_H
-#define SCHEDULERSERVICE_H
+#pragma once
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -11,8 +10,10 @@
 #include <functional>
 #include <optional>
 #include <functional>
-#include "json.hpp"
+#include <unordered_set>
 
+#include "json.hpp"
+#include "JSONSerialization.h"
 
 // This is the blueprint for the Scheduler service. it shall
 /*
@@ -50,7 +51,7 @@ typedef struct Job {
     json __config;
     BUILD_TYPE __build_type;
     JOB_STATUS __status;
-    std::vector<std::reference_wrapper<ContainerInfo>> __containers;
+    std::unordered_set<std::string> __containers;
 
     // temporary vector for container ids for serialization purposes
     std::vector<std::string> __containerIds;
@@ -60,10 +61,11 @@ typedef struct Job {
     Job& operator=(const Job&) = default;
     Job& operator=(Job&&) noexcept = default;
     Job() = default;
+    
 }Job;
 
+
 // for interal purposes, no such job needs to be created
-inline Job emptyJob;
 class SchedulerService {
     protected: 
 
@@ -97,29 +99,3 @@ class SchedulerService {
         virtual void Shutdown(); //
 };
 
-namespace ns {
-    void to_json(nlohmann::json& jsonObj, const Job& j)
-    {
-        std::vector<std::string> containerIds;
-        containerIds.reserve(j.__containers.size());
-        for (const auto& ref : j.__containers)
-        {
-            containerIds.push_back(ref.get().id);
-        }
-        jsonObj = nlohmann::json{
-            {"jobId", j.__id},
-            {"config", j.__config},
-            {"build_type", j.__build_type},
-            {"containers", containerIds}
-        }  ;
-    }
-    void from_json(nlohmann::json& j, Job& job)
-    {
-        j.at("jobId").get_to(job.__id);
-        j.at("config").get_to(job.__config);
-        j.at("build_type").get_to(job.__build_type);
-        j.at("containers").get_to(job.__containerIds);
-    }
-}
-
-#endif
