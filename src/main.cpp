@@ -3,39 +3,42 @@
 #include <iostream>
 #include <ctime>
 #include "utils.h"
-#include "schedulerserviceimpl.h"
+#include "schedulerservice.h"
 #include "containerservice.h"
 
 using json = nlohmann::json;
 
 int main()
 {
-
-    SchedulerServiceImpl Scheduler;
+    SchedulerService Scheduler;
     ContainerService ContainerServiceObject;
     httplib::Server svr;
 
     Scheduler.initWorkerPool();
 
     svr.Get("/", [](const httplib::Request &req, httplib::Response &res)
-            {
+    {
         std::cout << req.body;
         //json j = { {"message", "Hello from C++!"} };
-        res.set_content("Hello from C++\n","text/plain"); });
+        res.set_content("cassie instance up!\n","text/plain"); 
+    });
 
-    // the body should be of this format:
-    /*
+    
+    /* POST /deployment/add
         {
-            "repo" : "{GIT_REPO_URL_PUBLIC}",
+            "repo": "repository_url",
+            "config" : {},
+            "project_type" : "nodejs"
         }
+
     */
-    svr.Post("/project/add", [&](const httplib::Request &req, httplib::Response &res)
-             {
+    svr.Post("/deployments/add", [&](const httplib::Request &req, httplib::Response &res)
+    {
     try {
         json data = json::parse(req.body);
         std::string repoURL = data["repo"];
         json config = data["config"]; // docker config
-        json project_type = data["project_type"]; // nodejs (), llm 
+        json project_type = data["project_type"] || "nodejs"; // nodejs
         try {
             std::string job_id = Scheduler.enqueueDeployment(repoURL, config, project_type);
 
@@ -53,10 +56,10 @@ int main()
 
     } catch (const std::exception& e) {
         res.status = 400;
-        res.set_content(std::string("invalid json: ") + e.what(), "text/plain");
+        res.set_content(std::string("endpoint error: ") + e.what(), "text/plain");
     } });
 
-    svr.Get("/containers/status", [&](const httplib::Request &req, httplib::Response &res)
+    svr.Get("/deployments/containers/status", [&](const httplib::Request &req, httplib::Response &res)
             {
     try 
     {
@@ -81,7 +84,14 @@ int main()
             res.set_content("failure : " + std::string(e.what()), "text/plain");
     } });
 
-    svr.Post("/containers/create", [&](const httplib::Request &req, httplib::Response &res)
+
+    /*
+        POST /deployment/containers/create
+        {
+            "id" : "id_string" (get it from the backend, db, i do not care. this should point to a valid jobID, given from prev req)
+        }
+    */
+    svr.Post("/deployments/containers/create", [&](const httplib::Request &req, httplib::Response &res)
              {
     try {
         json data = json::parse(req.body);
@@ -134,6 +144,16 @@ int main()
         res.status = httplib::Forbidden_403;
         res.set_content("forbidden : " + std::string(e.what()), "text/plain");
     } });
+
+    /*
+        GET /deployments/containers/logs?id="containerID"
+
+        this will send the text logs that we have. we should see if stdout is to be supported. not supported for now for the web based interface.
+        
+    */
+    svr.Get("/deployments/containers/logs", [&](const httplib::Request& req, httplib::Response& res){
+
+    });
 
     svr.set_logger([](const httplib::Request &req, const httplib::Response &res)
                    { std::cout << "\n[LOG]" << req.method << " " << req.path << " -> " << res.status << " from " << req.remote_addr << "\n"; });

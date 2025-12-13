@@ -1,5 +1,5 @@
 #include "JSONSerialization.h"
-#include "ContainerQueries.h"
+#include "containerservice.h"
 #include "schedulerservice.h"
 
 // ------------------ ContainerInfo ------------------------
@@ -54,7 +54,7 @@ void to_json(json& j, const Job& job)
     containerIds.reserve(job.__containers.size());
 
     for (const auto& ref : job.__containers)
-        containerIds.push_back(ref.get().id);
+        containerIds.emplace_back(ref.get().id);
 
     j = {
         {"jobId",      job.__id},

@@ -14,7 +14,7 @@ include_directories(${HEADERS})
 file(GLOB SOURCES "src/*/*.cpp")
 add_executable(server ${SOURCES} src/main.cpp)
 
-target_compile_definitions(server PRIVATE "-Wall" "-Wextra" "-pedantic" "-g" "-O0")
+add_compile_options(-Wall -Wextra -O0 -g -pedantic)
 
 #link winsock 
 if (WIN32)

@@ -71,9 +71,9 @@ class SchedulerService {
 
         //internal Buffers : 
 
-        static std::unordered_map<std::string, std::shared_ptr<Job>> Jobs;
+        static std::unordered_map<std::string, JOB_STATUS> Jobs;
         //Vector for active jobs (not processed yet.)
-        static std::vector<std::shared_ptr<Job>> JobQueue; 
+        static std::deque<std::unique_ptr<Job>> JobQueue; 
         static std::vector<std::thread> workers;
 
         //Locks and Mutexes
@@ -82,20 +82,29 @@ class SchedulerService {
         //Condition variables
         static std::condition_variable_any workerThreadCV;
         static bool stop;
-        virtual int setJobStatus() ;
+        int setJobStatus() ;
         
         //Constants
         static const int MAX_THREADS = 10;
 
         // Worker Threads get called with this function. continuously checks for any jobs from jobAvailable variable
-        virtual void workerThread(); //
-        virtual ~SchedulerService() = default;  
+        void workerThread(); //
+          
     public:
         //SchedulerService();
-        virtual void initWorkerPool(); // 
-        virtual JOB_STATUS getJobStatus();
-        virtual JOB_STATUS addJobToQueue();
-        virtual int executeJob() ;
-        virtual void Shutdown(); //
+        ~SchedulerService() = default;
+        void initWorkerPool(); // 
+        void Shutdown(); //
+        JOB_STATUS getJobStatus(const std::string JobID);
+        JOB_STATUS addJobToQueue(const std::string id, const json config, const BUILD_TYPE typeofBuild);
+        int executeJob(const std::string id);
+
+        int setJobStatus(const std::string id, const JOB_STATUS status);
+        std::string enqueueDeployment (const std::string& repoURL, const json& config, const std::string& ProjectType);
+        void initWorkerPool();
+        void workerThread();
+        int nodejs_internal_build(const std::shared_ptr<Job> j);
+        void removeJob(const std::shared_ptr<Job> j);
+        std::optional<std::reference_wrapper<Job>> getJobRef(const std::string& id);
 };
 
