@@ -54,7 +54,7 @@ void to_json(json& j, const Job& job)
     containerIds.reserve(job.__containers.size());
 
     for (const auto& ref : job.__containers)
-        containerIds.emplace_back(ref.get().id);
+        containerIds.emplace_back(ref);
 
     j = {
         {"jobId",      job.__id},

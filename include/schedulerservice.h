@@ -101,8 +101,6 @@ class SchedulerService {
 
         int setJobStatus(const std::string id, const JOB_STATUS status);
         std::string enqueueDeployment (const std::string& repoURL, const json& config, const std::string& ProjectType);
-        void initWorkerPool();
-        void workerThread();
         int nodejs_internal_build(const std::shared_ptr<Job> j);
         void removeJob(const std::shared_ptr<Job> j);
         std::optional<std::reference_wrapper<Job>> getJobRef(const std::string& id);

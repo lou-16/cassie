@@ -1,6 +1,8 @@
 
+
+GET http://localhost:8080/ HTTP/1.1
 # @name responseBody
-POST http://localhost:8080/project/add HTTP/1.1
+POST http://localhost:8080/deployments/add HTTP/1.1
 
 {
     "repo" : "https://github.com/lou-16/krnl.git",
@@ -10,9 +12,9 @@ POST http://localhost:8080/project/add HTTP/1.1
 
 # @ref responseBody
 
-POST http://localhost:8080/containers/create HTTP/1.1
+POST http://localhost:8080/deployments/containers/create HTTP/1.1
 
 {
-    "id" : "0000019a8e0fd29f27d1",
+    "id" : "0000019b1957d87f96a4",
     "config" : {"baseImage": "alpine:latest"}
 }

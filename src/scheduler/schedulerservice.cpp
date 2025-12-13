@@ -1,7 +1,7 @@
 #include "schedulerservice.h"
 #include "containerservice.h"
-std::unordered_map<std::string, std::shared_ptr<Job>> SchedulerService::Jobs;
-std::vector<std::shared_ptr<Job>> SchedulerService::JobQueue;
+std::unordered_map<std::string, JOB_STATUS> SchedulerService::Jobs;
+std::deque<std::unique_ptr<Job>> SchedulerService::JobQueue;
 std::shared_mutex SchedulerService::sharedMutex;
 std::condition_variable_any SchedulerService::workerThreadCV;
 bool SchedulerService::stop = false;
@@ -39,8 +39,8 @@ int SchedulerService::setJobStatus(const std::string id, const JOB_STATUS status
     auto it = Jobs.find(id);
     if (it != Jobs.end())
     {
-        it->second->__status = status;
-        return static_cast<int>(it->second->__status);
+        it->second = status;
+        return static_cast<int>(it->second);
     }
     return -1;
 }
@@ -54,20 +54,20 @@ JOB_STATUS SchedulerService::getJobStatus(const std::string id)
     {
         return JOB_STATUS::NOT_FOUND;
     }
-    return it->second->__status;
+    return it->second;
 }
 
 // Add a new job to the queue
 JOB_STATUS SchedulerService::addJobToQueue(const std::string id, const json config, const BUILD_TYPE typeOfBuild)
 {
     //std::cout << "[+] addJobToQueue called";
-    /* makes a shared pointer for a job object*/
-    std::shared_ptr<Job> ptr = std::make_shared<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE,{}});
+    /* makes a unique pointer for a job object*/
+    std::unique_ptr<Job> ptr = std::make_unique<Job>(Job{id, config, typeOfBuild, JOB_STATUS::IDLE,{}});
     {
         /* modifies the internal buffers */
         std::unique_lock lock(sharedMutex);
-        JobQueue.push_back(ptr);
-        Jobs[id] = ptr;
+        Jobs[id] = JOB_STATUS::IDLE;
+        JobQueue.push_back(std::move(ptr));
     }
     /* notifies the worker threads, so one of them wakes up for processing */
     workerThreadCV.notify_one();
@@ -84,7 +84,7 @@ int SchedulerService::executeJob(const std::string id)
     std::unique_lock lock(sharedMutex);
 
     /* finds the iterator to a particular job given its JobID (named id here) using a find_if function */
-    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [&](const std::shared_ptr<Job>& job)
+    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [&](const std::unique_ptr<Job>& job)
                            { return job.get() -> __id == id; });
 
     /* checks if the iterator is valid */
@@ -94,14 +94,14 @@ int SchedulerService::executeJob(const std::string id)
         return 1;
     }
 
-    /* derefs the iterator, getting the shared ptr, and then calls get to get the ref to the Job object*/
-    Job jobToExecute = *it->get();
+    /* derefs the iterator, getting the unique ptr, and then calls get to get the ref to the Job object*/
+    Job& jobToExecute = **it;
 
     // branch out the jobs based on build type
     switch (jobToExecute.__build_type)
     {
     case BUILD_TYPE::NODEJS:
-        Jobs[jobToExecute.__id].get()->__status = JOB_STATUS::WORKING;
+        Jobs[jobToExecute.__id] = JOB_STATUS::WORKING;
         //nodejs_internal_build(*it);
             break;
     case BUILD_TYPE::CPP:
@@ -112,7 +112,7 @@ int SchedulerService::executeJob(const std::string id)
     }
 
     // Mark job as completed
-    Jobs[id].get()->__status = JOB_STATUS::COMPLETED;
+    Jobs[id] = JOB_STATUS::COMPLETED;
 
     return static_cast<int>(JOB_STATUS::COMPLETED);
 }
@@ -145,7 +145,7 @@ void SchedulerService::removeJob(const std::shared_ptr<Job> j)
     /* locking the mutex */
     std::unique_lock lock(sharedMutex);
     /* using a find_if to get the iterator*/
-    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [j](const std::shared_ptr<Job> &x)
+    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [&j](const std::unique_ptr<Job> &x)
                            { return x.get()->__id == j.get()->__id; });
     /* iterator validity check */
     if (it != JobQueue.end())
@@ -224,12 +224,14 @@ void SchedulerService::workerThread()
         
         // Now we are guaranteed there's a job
         Job& _j = *(JobQueue.front());
+        std::string jobId = _j.__id;
+        std::shared_ptr<Job> jobPtr = std::make_shared<Job>(_j);
         lock.unlock(); // release mutex before long work
 
         /* called executeJob */
-        executeJob(_j.__id);
+        executeJob(jobId);
         /* remove job after it has been worked upon */
-        removeJob(JobQueue.front());
+        removeJob(jobPtr);
     }
 }
 
@@ -239,16 +241,17 @@ std::optional<std::reference_wrapper<Job>> SchedulerService::getJobRef(const std
     /* locks the map */
     std::shared_lock lock(sharedMutex);
     
-    /* finds the iterator using find_if*/
-    auto it = Jobs.find(id);
+    /* finds the iterator in JobQueue using find_if*/
+    auto it = std::find_if(JobQueue.begin(), JobQueue.end(), [&id](const std::unique_ptr<Job>& job)
+                           { return job->__id == id; });
     
-    if(it == Jobs.end())
+    if(it == JobQueue.end())
     {
         return std::nullopt;
     }
     else 
     {
-        return *(it->second.get());
+        return std::ref(**it);
     }
     
 }

@@ -38,7 +38,7 @@ int main()
         json data = json::parse(req.body);
         std::string repoURL = data["repo"];
         json config = data["config"]; // docker config
-        json project_type = data["project_type"] || "nodejs"; // nodejs
+        json project_type = data["project_type"]; // nodejs
         try {
             std::string job_id = Scheduler.enqueueDeployment(repoURL, config, project_type);
 
