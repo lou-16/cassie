@@ -15,6 +15,6 @@ POST http://localhost:8080/deployments/add HTTP/1.1
 POST http://localhost:8080/deployments/containers/create HTTP/1.1
 
 {
-    "id" : "0000019b1957d87f96a4",
+    "id" : "0000019b3bafe62af870",
     "config" : {"baseImage": "alpine:latest"}
 }

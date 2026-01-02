@@ -116,7 +116,7 @@ class ContainerService {
         ~ContainerService() = default; // 
 
         /* this adds the unique ptr to container to the map TODO: design this better later */
-        void initialiseContainerInfo(Job& J, const json& config); // 
+        void initialiseContainerInfo(Job* J, const json& config); // 
 
         /* TODO (IMPORTANT) : extend this class to allow for TCP streams to be sent to the backend */
 };

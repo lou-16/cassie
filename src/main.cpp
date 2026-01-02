@@ -106,8 +106,8 @@ int main()
         std::string job_id = data["id"];
         std::cerr << "[DEBUG] job_id = " << job_id << "\n";
 
-        auto ref = Scheduler.getJobRef(job_id);
-        std::cerr << "[DEBUG] does ref exist? and ref value is? : " << (ref.has_value()? "true" : "false") << "\n";
+        Job* const ref = Scheduler.getJobRef(job_id);
+        std::cerr << "[DEBUG] does ref exist? and ref value is? : " << (ref? "true" : "false")  << "\n";
         if (!ref) {
             res.status = httplib::BadRequest_400;
             res.set_content("jobId in the post req body does not correspond to a correct container/job", "text/plain");
@@ -115,14 +115,14 @@ int main()
         }
 
         std::cerr << "[DEBUG] Creating container..." << "\n";
-        ContainerServiceObject.initialiseContainerInfo(ref->get(), ref->get().__config);
+        ContainerServiceObject.initialiseContainerInfo(ref, ref->__config);
         
-        auto r = ContainerServiceObject.createContainer(ref->get().__id);
+        auto r = ContainerServiceObject.createContainer(ref->__id);
 
         std::cerr << "[DEBUG] Container created successfully." << "\n";
         // modern c++ is mad. how does this say that we r checking if a job's container set got a particular container or not?
         // who knows.
-        if(ref->get().__containers.insert(r->id).second)
+        if(ref->__containers.insert(r->id).second)
         {
             std::cerr << "[DEBUG] Container added to job's containers set" << "\n";
         }

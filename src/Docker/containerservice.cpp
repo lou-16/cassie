@@ -3,7 +3,7 @@
 std::unordered_map<std::string,std::unique_ptr<ContainerInfo>> ContainerService::containersMap;
 std::shared_mutex ContainerService::containersMutex;
 
-void ContainerService::initialiseContainerInfo(Job& job_ref, const json& config) {
+void ContainerService::initialiseContainerInfo(Job* job_ref, const json& config) {
     {
         // lock the mutex for exclusive access
         std::unique_lock lck(containersMutex);
@@ -11,7 +11,7 @@ void ContainerService::initialiseContainerInfo(Job& job_ref, const json& config)
     try {
          
         auto newContainer = std::make_unique<ContainerInfo>();
-        newContainer.get()->jobId = job_ref.__id;
+        newContainer.get()->jobId = job_ref->__id;
         {
             config.at("baseImage").get_to(newContainer->Image);
             if (config.contains("workingDirectory")) config.at("workingDirectory").get_to(newContainer->workingDir);

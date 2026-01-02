@@ -229,14 +229,15 @@ void SchedulerService::workerThread()
         lock.unlock(); // release mutex before long work
 
         /* called executeJob */
-        executeJob(jobId);
+        _j.__status = static_cast<JOB_STATUS>(executeJob(jobId));
         /* remove job after it has been worked upon */
-        removeJob(jobPtr);
+        //removeJob(jobPtr);
+        
     }
 }
 
 /* returns a std::reference_wrapper<Job>*/
-std::optional<std::reference_wrapper<Job>> SchedulerService::getJobRef(const std::string& id)
+Job* SchedulerService::getJobRef(const std::string& id)
 {
     /* locks the map */
     std::shared_lock lock(sharedMutex);
@@ -247,11 +248,11 @@ std::optional<std::reference_wrapper<Job>> SchedulerService::getJobRef(const std
     
     if(it == JobQueue.end())
     {
-        return std::nullopt;
+        return nullptr;
     }
     else 
     {
-        return std::ref(**it);
+        return it->get();
     }
     
 }

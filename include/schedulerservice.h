@@ -25,6 +25,8 @@
        > 2 ; error in cassie-build.json file (could nt read)
        > 3 ; error in cassie-build.json file (incorrect syntax)
        *** extend as per requirements ***
+
+       REWRITE.
 */
 
 using json = nlohmann::json;
@@ -103,6 +105,7 @@ class SchedulerService {
         std::string enqueueDeployment (const std::string& repoURL, const json& config, const std::string& ProjectType);
         int nodejs_internal_build(const std::shared_ptr<Job> j);
         void removeJob(const std::shared_ptr<Job> j);
-        std::optional<std::reference_wrapper<Job>> getJobRef(const std::string& id);
+        // Non Owning Ptr.
+        Job* getJobRef(const std::string& id);
 };
 
